@@ -232,7 +232,7 @@ class EmbeddedModelField(models.Field):
             raise TypeError("Expected instance of type %r, not %r"
                             % (type(self.embedded_model), type(embedded_instance)))
 
-        data = dict((field.name, field.pre_save(embedded_instance, add))
+        data = dict((field.attname, field.pre_save(embedded_instance, add))
                     for field in embedded_instance._meta.fields)
         return embedded_instance, data
 
@@ -240,9 +240,11 @@ class EmbeddedModelField(models.Field):
         if embedded_dict is None:
             return None
         values = dict()
-        for name, value in embedded_dict.iteritems():
+        for name in embedded_instance._meta.get_all_field_names():
             field = embedded_instance._meta.get_field(name)
-            values[name] =  field.get_db_prep_value(value, **kwargs)
+            if field.attname in embedded_dict:
+                value = embedded_dict[field.attname]
+                values[field.attname] = field.get_db_prep_value(value, **kwargs)
         if self.embedded_model is None:
             values.update({'_module' : embedded_instance.__class__.__module__,
                            '_model'  : embedded_instance.__class__.__name__})
